@@ -1,0 +1,5 @@
+name: laravel-typescript
+recipe: laravel
+config:
+  webroot: .
+  php: 8.4

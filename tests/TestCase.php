@@ -1,8 +1,8 @@
 <?php
 
-namespace Based\TypeScript\Tests;
+namespace AlexStewartJa\TypeScript\Tests;
 
-use Based\TypeScript\TypeScriptServiceProvider;
+use AlexStewartJa\TypeScript\TypeScriptServiceProvider;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Orchestra\Testbench\TestCase as Orchestra;

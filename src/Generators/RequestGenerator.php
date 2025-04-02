@@ -1,22 +1,26 @@
 <?php
 
-namespace Based\TypeScript\Generators;
+namespace AlexStewartJa\TypeScript\Generators;
 
-use Based\TypeScript\Definitions\TypeScriptProperty;
-use Based\TypeScript\Definitions\TypeScriptType;
-use Doctrine\DBAL\Schema\Column;
-use Doctrine\DBAL\Types\Types;
-use Illuminate\Contracts\Validation\Rule;
+use AlexStewartJa\TypeScript\Definitions\TypeScriptProperty;
+use AlexStewartJa\TypeScript\Helpers\DriverHelper;
+use AlexStewartJa\TypeScript\Helpers\FormattingHelper;
+use AlexStewartJa\TypeScript\Helpers\TypeHelper;
+use Doctrine\DBAL\Exception;
+use Doctrine\DBAL\Schema\Column as DbalColumn;
+use Illuminate\Database\Connection;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ClosureValidationRule;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\Validator;
-use JetBrains\PhpStorm\Pure;
 use Laravel\Fortify\Rules\Password as FortifyPassword;
+use ReflectionClass;
+use ReflectionException;
+use RuntimeException;
 
 class RequestGenerator extends AbstractGenerator
 {
@@ -50,33 +54,14 @@ class RequestGenerator extends AbstractGenerator
         }
 
         $rules = $rules
-            ->flatMap(fn (array|string $rules, string $property) => $this->parseRules($property, $rules))
+            ->flatMap(fn(array|string $rules, string $property) => $this->parseRules($property, $rules))
             ->filter();
 
         if ($rules->isEmpty()) {
             return null;
         }
 
-        return $this->rulesToStringArray($rules)->join(PHP_EOL . '        ');
-    }
-
-    /**
-     * @throws \ReflectionException
-     */
-    protected function boot(): void
-    {
-        /** @var FormRequest $request */
-        $request = $this->reflection->newInstance();
-        $this->request = $request->setContainer(app());
-
-        $clazz = new \ReflectionClass($this->request);
-        $method = $clazz->getMethod('getValidatorInstance');
-        $method->setAccessible(true);
-
-        /** @var \Illuminate\Validation\Validator $validator */
-        $this->validator = $method->invoke($this->request);
-
-        $this->customRules = config('typescript.customRules');
+        return $this->rulesToStringArray($rules)->join(FormattingHelper::newLine(2));
     }
 
     /**
@@ -92,7 +77,7 @@ class RequestGenerator extends AbstractGenerator
 
         $rules = collect($rules)
             ->values()
-            ->flatMap(fn (string|Rule $rule) => match (true) {
+            ->flatMap(fn(string|Rule $rule) => match (true) {
                 is_object($rule) => $this->parseRuleObject($property, $rule),
                 default => $this->parseRuleString($property, $rule)
             })
@@ -136,30 +121,18 @@ class RequestGenerator extends AbstractGenerator
     }
 
     /**
-     * @param \Illuminate\Support\Collection $rules
-     * @return string[]
-     */
-    private function getPropertyTypes(Collection $rules): array
-    {
-        return $rules
-            ->keys()
-            ->filter(fn (string $rule) => !in_array($rule, static::CONTROL_KEYS, true))
-            ->values()
-            ->all();
-    }
-
-    /**
-     * @throws \Doctrine\DBAL\Exception
+     * @throws Exception
      */
     private function parseRuleObject(string $property, object $rule): Collection
     {
         if (method_exists($rule, '__toString')) {
-            return $this->parseRuleString($property, (string) $rule);
+            return $this->parseRuleString($property, (string)$rule);
         }
 
         return collect(
             match (true) {
-                ($rule instanceof Password), ($rule instanceof FortifyPassword) => ['string' => null],
+                ($rule instanceof Password),
+                (class_exists(FortifyPassword::class) && $rule instanceof FortifyPassword) => ['string' => null],
                 ($rule instanceof ClosureValidationRule) => ['any' => null],
                 in_array($clazz = get_class($rule), $this->customRules, true) => array_fill_keys(
                     Arr::wrap($this->customRules[$clazz]),
@@ -171,20 +144,20 @@ class RequestGenerator extends AbstractGenerator
     }
 
     /**
-     * @throws \Doctrine\DBAL\Exception
+     * @throws Exception
      */
     private function parseRuleString(string $property, string $rule): Collection
     {
         return collect(explode(':', $rule, 2))
             ->mapWithKeys(
-                fn (string $args, int|string $key) => is_int($key)
+                fn(string $args, int|string $key) => is_int($key)
                     ? [$this->parseRuleName($property, $args) => null]
                     : [$this->parseRuleName($property, $key, $args) => $args]
             );
     }
 
     /**
-     * @throws \Doctrine\DBAL\Exception
+     * @throws Exception
      */
     private function parseRuleName(string $property, string $rule, string $args = null): ?string
     {
@@ -204,7 +177,7 @@ class RequestGenerator extends AbstractGenerator
      * @param string $property
      * @param string|null $args
      * @return string|null
-     * @throws \Doctrine\DBAL\Exception
+     * @throws Exception
      */
     private function resolveColumn(string $property, ?string $args): ?string
     {
@@ -216,8 +189,8 @@ class RequestGenerator extends AbstractGenerator
         $table = $args[0];
         $columnName = Arr::get($args, 1) ?? $property;
 
-        /** @var \Illuminate\Database\Connection $connection */
-        $connection = DB::connection();
+        /** @var Connection $connection */
+        $connection = DriverHelper::getDbConnectionObject();
 
         $prefix = $connection->getTablePrefix();
 
@@ -225,28 +198,29 @@ class RequestGenerator extends AbstractGenerator
             return null;
         }
 
-        $schemaManager = $connection->getDoctrineSchemaManager();
-        $columns = collect($schemaManager->listTableColumns("$prefix$table"));
+        if (app()->version() < 11) {
+            $schemaManager = $connection->getDoctrineSchemaManager();
+            $columns = $schemaManager->listTableColumns("$prefix$table");
+        } else {
+            $columns = Schema::getColumns("$prefix$table");
+        }
 
-        /** @var Column $column */
-        $column = $columns->first(fn (Column $column) => $column->getName() === $columnName);
+        $column = $columns->first(fn(DbalColumn|array $column) => (is_array($column) ? $column['name'] : $column->getName()) === $columnName);
 
-        return $this->getColumnType($column->getType()->getName());
+        return TypeHelper::getColumnType(is_array($column) ? $column['type_name'] : $column->getType()->getName());
     }
 
-    #[Pure] protected function getColumnType(string $type): string|array
+    /**
+     * @param Collection $rules
+     * @return string[]
+     */
+    private function getPropertyTypes(Collection $rules): array
     {
-        return match ($type) {
-            Types::ARRAY, Types::JSON, Types::SIMPLE_ARRAY => [TypeScriptType::array(), TypeScriptType::ANY],
-            Types::ASCII_STRING, Types::BINARY, Types::BLOB, Types::DATE_MUTABLE,
-            Types::DATE_IMMUTABLE, Types::DATEINTERVAL, Types::DATETIME_MUTABLE,
-            Types::DATETIME_IMMUTABLE, Types::DATETIMETZ_MUTABLE, Types::DATETIMETZ_IMMUTABLE,
-            Types::GUID, Types::STRING, Types::TEXT => TypeScriptType::STRING,
-            Types::BIGINT, Types::DECIMAL, Types::FLOAT, Types::INTEGER,
-            Types::SMALLINT, Types::TIME_MUTABLE, Types::TIME_IMMUTABLE => TypeScriptType::NUMBER,
-            Types::BOOLEAN => TypeScriptType::BOOLEAN,
-            default => TypeScriptType::ANY,
-        };
+        return $rules
+            ->keys()
+            ->filter(fn(string $rule) => !in_array($rule, static::CONTROL_KEYS, true))
+            ->values()
+            ->all();
     }
 
     private function rulesToStringArray(Collection $rules, int $depth = 0): Collection
@@ -254,14 +228,14 @@ class RequestGenerator extends AbstractGenerator
         /** @var Collection $arrayRules */
         /** @var Collection $rules */
         [$arrayRules, $rules] = $rules->partition(
-            fn (array $value) => in_array('array', $value['types'], true) ||
+            fn(array $value) => in_array('array', $value['types'], true) ||
                 str_contains($value['name'], '.')
         );
 
         return $rules
             ->merge($this->mergeArrays($arrayRules, $depth + 1))
             ->values()
-            ->map(fn (array $value) => strval(app()->make(TypeScriptProperty::class, $value)))
+            ->map(fn(array $value) => strval(app()->make(TypeScriptProperty::class, $value)))
             ->values();
     }
 
@@ -275,7 +249,7 @@ class RequestGenerator extends AbstractGenerator
                 $value['types'] = array_values(
                     array_filter(
                         $value['types'],
-                        fn (string $type) => $type !== 'array'
+                        fn(string $type) => $type !== 'array'
                     )
                 );
                 $value['is_array'] = null;
@@ -283,7 +257,7 @@ class RequestGenerator extends AbstractGenerator
 
                 return $value;
             })
-            ->partition(fn (array $value, string $property) => str_contains($property, '.'));
+            ->partition(fn(array $value, string $property) => str_contains($property, '.'));
 
         $rules = $rules->all();
 
@@ -306,7 +280,7 @@ class RequestGenerator extends AbstractGenerator
             $isArray = $remainder === '*' || str_starts_with($remainder, '*.');
 
             if ($rules[$property]['is_array'] !== null && $rules[$property]['is_array'] !== $isArray) {
-                throw new \RuntimeException('Cannot combine array and object rules for the same property');
+                throw new RuntimeException('Cannot combine array and object rules for the same property');
             }
 
             $rules[$property]['is_array'] = $isArray;
@@ -349,7 +323,7 @@ class RequestGenerator extends AbstractGenerator
                 /** @var Collection $plainArray */
                 /** @var Collection $children */
                 [$plainArray, $children] = collect($value['children'])
-                    ->partition(fn (array $value) => $value['name'] === '*');
+                    ->partition(fn(array $value) => $value['name'] === '*');
 
                 if ($plainArray->isNotEmpty()) {
                     $types = implode(' | ', $plainArray->first()['types']) ?: 'any';
@@ -359,7 +333,7 @@ class RequestGenerator extends AbstractGenerator
 
                 if ($children->isNotEmpty()) {
                     $typeObject = $this->rulesToStringArray($children, $depth)
-                        ->map(fn (string $line) => "$prefix$line")
+                        ->map(fn(string $line) => "$prefix$line")
                         ->join(PHP_EOL);
 
                     $typeObject = <<< END
@@ -378,5 +352,24 @@ END;
 
                 return $result;
             });
+    }
+
+    /**
+     * @throws ReflectionException
+     */
+    protected function boot(): void
+    {
+        /** @var FormRequest $request */
+        $request = $this->reflection->newInstance();
+        $this->request = $request->setContainer(app());
+
+        $clazz = new ReflectionClass($this->request);
+        $method = $clazz->getMethod('getValidatorInstance');
+        $method->setAccessible(true);
+
+        /** @var Validator $validator */
+        $this->validator = $method->invoke($this->request);
+
+        $this->customRules = config('laravel-typescript.custom_rules');
     }
 }

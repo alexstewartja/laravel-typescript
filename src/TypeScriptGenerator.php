@@ -1,6 +1,6 @@
 <?php
 
-namespace Based\TypeScript;
+namespace AlexStewartJa\TypeScript;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -28,7 +28,7 @@ class TypeScriptGenerator
             ->prepend(
                 <<<END
                 /**
-                 * This file is auto generated using 'php artisan typescript:generate'
+                 * This file is auto generated using 'php artisan laravel-typescript:generate'
                  *
                  * Changes to this file will be lost when the command is run again
                  */

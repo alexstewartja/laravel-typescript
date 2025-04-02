@@ -1,6 +1,6 @@
 <?php
 
-namespace Based\TypeScript\Definitions;
+namespace AlexStewartJa\TypeScript\Definitions;
 
 use Illuminate\Support\Collection;
 

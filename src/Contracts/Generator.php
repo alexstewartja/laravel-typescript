@@ -1,6 +1,6 @@
 <?php
 
-namespace Based\TypeScript\Contracts;
+namespace AlexStewartJa\TypeScript\Contracts;
 
 use ReflectionClass;
 
