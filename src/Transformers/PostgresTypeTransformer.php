@@ -7,7 +7,6 @@ use Illuminate\Support\Str;
 
 class PostgresTypeTransformer implements TypeTransformer
 {
-
     public function transform(string $type): string
     {
         if (Str::startsWith($type, ['date', 'json', 'pg_', 'time'])) {

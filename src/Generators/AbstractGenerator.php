@@ -4,7 +4,6 @@ namespace AlexStewartJa\TypeScript\Generators;
 
 use AlexStewartJa\TypeScript\Contracts\Generator;
 use AlexStewartJa\TypeScript\Helpers\FormattingHelper;
-use Illuminate\Support\Str;
 use ReflectionClass;
 
 abstract class AbstractGenerator implements Generator

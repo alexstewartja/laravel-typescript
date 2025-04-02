@@ -24,7 +24,7 @@ use RuntimeException;
 
 class RequestGenerator extends AbstractGenerator
 {
-    const CONTROL_KEYS = [
+    public const CONTROL_KEYS = [
         'sometimes',
         'prohibited',
         'required',
@@ -54,7 +54,7 @@ class RequestGenerator extends AbstractGenerator
         }
 
         $rules = $rules
-            ->flatMap(fn(array|string $rules, string $property) => $this->parseRules($property, $rules))
+            ->flatMap(fn (array|string $rules, string $property) => $this->parseRules($property, $rules))
             ->filter();
 
         if ($rules->isEmpty()) {
@@ -77,7 +77,7 @@ class RequestGenerator extends AbstractGenerator
 
         $rules = collect($rules)
             ->values()
-            ->flatMap(fn(string|Rule $rule) => match (true) {
+            ->flatMap(fn (string|Rule $rule) => match (true) {
                 is_object($rule) => $this->parseRuleObject($property, $rule),
                 default => $this->parseRuleString($property, $rule)
             })
@@ -96,7 +96,7 @@ class RequestGenerator extends AbstractGenerator
             return null;
         }
 
-        $isOptional = $rules->has('sometimes') || (!$rules->has('present') && !$rules->has('required'));
+        $isOptional = $rules->has('sometimes') || (! $rules->has('present') && ! $rules->has('required'));
         $isNullable = $rules->has('nullable');
 
         $properties = [
@@ -105,7 +105,7 @@ class RequestGenerator extends AbstractGenerator
                 'types' => $types,
                 'optional' => $isOptional,
                 'nullable' => $isNullable,
-            ]
+            ],
         ];
 
         if ($rules->has('confirmed')) {
@@ -150,7 +150,7 @@ class RequestGenerator extends AbstractGenerator
     {
         return collect(explode(':', $rule, 2))
             ->mapWithKeys(
-                fn(string $args, int|string $key) => is_int($key)
+                fn (string $args, int|string $key) => is_int($key)
                     ? [$this->parseRuleName($property, $args) => null]
                     : [$this->parseRuleName($property, $key, $args) => $args]
             );
@@ -194,7 +194,7 @@ class RequestGenerator extends AbstractGenerator
 
         $prefix = $connection->getTablePrefix();
 
-        if (!Schema::hasTable("$prefix$table") || !Schema::hasColumn("$prefix$table", $columnName)) {
+        if (! Schema::hasTable("$prefix$table") || ! Schema::hasColumn("$prefix$table", $columnName)) {
             return null;
         }
 
@@ -205,7 +205,7 @@ class RequestGenerator extends AbstractGenerator
             $columns = Schema::getColumns("$prefix$table");
         }
 
-        $column = $columns->first(fn(DbalColumn|array $column) => (is_array($column) ? $column['name'] : $column->getName()) === $columnName);
+        $column = $columns->first(fn (DbalColumn|array $column) => (is_array($column) ? $column['name'] : $column->getName()) === $columnName);
 
         return TypeHelper::getColumnType(is_array($column) ? $column['type_name'] : $column->getType()->getName());
     }
@@ -218,7 +218,7 @@ class RequestGenerator extends AbstractGenerator
     {
         return $rules
             ->keys()
-            ->filter(fn(string $rule) => !in_array($rule, static::CONTROL_KEYS, true))
+            ->filter(fn (string $rule) => ! in_array($rule, static::CONTROL_KEYS, true))
             ->values()
             ->all();
     }
@@ -228,14 +228,14 @@ class RequestGenerator extends AbstractGenerator
         /** @var Collection $arrayRules */
         /** @var Collection $rules */
         [$arrayRules, $rules] = $rules->partition(
-            fn(array $value) => in_array('array', $value['types'], true) ||
+            fn (array $value) => in_array('array', $value['types'], true) ||
                 str_contains($value['name'], '.')
         );
 
         return $rules
             ->merge($this->mergeArrays($arrayRules, $depth + 1))
             ->values()
-            ->map(fn(array $value) => strval(app()->make(TypeScriptProperty::class, $value)))
+            ->map(fn (array $value) => strval(app()->make(TypeScriptProperty::class, $value)))
             ->values();
     }
 
@@ -249,7 +249,7 @@ class RequestGenerator extends AbstractGenerator
                 $value['types'] = array_values(
                     array_filter(
                         $value['types'],
-                        fn(string $type) => $type !== 'array'
+                        fn (string $type) => $type !== 'array'
                     )
                 );
                 $value['is_array'] = null;
@@ -257,7 +257,7 @@ class RequestGenerator extends AbstractGenerator
 
                 return $value;
             })
-            ->partition(fn(array $value, string $property) => str_contains($property, '.'));
+            ->partition(fn (array $value, string $property) => str_contains($property, '.'));
 
         $rules = $rules->all();
 
@@ -266,7 +266,7 @@ class RequestGenerator extends AbstractGenerator
         foreach ($dotRules as $property => $value) {
             [$property, $remainder] = explode('.', $property, 2);
 
-            if (!array_key_exists($property, $rules)) {
+            if (! array_key_exists($property, $rules)) {
                 $rules[$property] = [
                     'name' => $property,
                     'types' => [],
@@ -323,7 +323,7 @@ class RequestGenerator extends AbstractGenerator
                 /** @var Collection $plainArray */
                 /** @var Collection $children */
                 [$plainArray, $children] = collect($value['children'])
-                    ->partition(fn(array $value) => $value['name'] === '*');
+                    ->partition(fn (array $value) => $value['name'] === '*');
 
                 if ($plainArray->isNotEmpty()) {
                     $types = implode(' | ', $plainArray->first()['types']) ?: 'any';
@@ -333,7 +333,7 @@ class RequestGenerator extends AbstractGenerator
 
                 if ($children->isNotEmpty()) {
                     $typeObject = $this->rulesToStringArray($children, $depth)
-                        ->map(fn(string $line) => "$prefix$line")
+                        ->map(fn (string $line) => "$prefix$line")
                         ->join(PHP_EOL);
 
                     $typeObject = <<< END

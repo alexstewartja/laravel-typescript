@@ -1,6 +1,6 @@
 <?php
 
-if (!function_exists('help')) {
+if (! function_exists('help')) {
     function help()
     {
         //

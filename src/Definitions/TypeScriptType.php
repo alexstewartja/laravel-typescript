@@ -27,7 +27,7 @@ class TypeScriptType
         if (is_string($types) && strpos($types, '?') !== false) {
             $types = [
                 str_replace('?', '', $types),
-                self::NULL
+                self::NULL,
             ];
         }
 

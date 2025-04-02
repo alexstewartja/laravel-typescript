@@ -8,7 +8,9 @@ class FormattingHelper
     {
         return str_repeat(' ', (config('laravel-typescript.formatting.spaces') * $count));
     }
-    public static function newLine(int $indent = 1): string {
+
+    public static function newLine(int $indent = 1): string
+    {
         return PHP_EOL . self::indent($indent);
     }
 }

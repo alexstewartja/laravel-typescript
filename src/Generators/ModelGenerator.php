@@ -6,9 +6,7 @@ use AlexStewartJa\TypeScript\Definitions\TypeScriptProperty;
 use AlexStewartJa\TypeScript\Definitions\TypeScriptType;
 use AlexStewartJa\TypeScript\Helpers\FormattingHelper;
 use AlexStewartJa\TypeScript\Helpers\TypeHelper;
-use AlexStewartJa\TypeScript\Transformers\TypeTransformer;
 use Doctrine\DBAL\Schema\Column as DbalColumn;
-use Doctrine\DBAL\Types\Types as DbalType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -51,7 +49,7 @@ class ModelGenerator extends AbstractGenerator
             $this->getAccessors(),
         ])
             ->unique()
-            ->filter(fn(string $part) => !empty($part))
+            ->filter(fn (string $part) => ! empty($part))
             ->join(FormattingHelper::newLine(2));
     }
 
@@ -61,7 +59,7 @@ class ModelGenerator extends AbstractGenerator
             return (string)new TypeScriptProperty(
                 name: is_array($column) ? $column['name'] : $column->getName(),
                 types: TypeHelper::getColumnType(is_array($column) ? $column['type_name'] : $column->getType()->getName()),
-                nullable: is_array($column) ? $column['nullable'] : !$column->getNotnull()
+                nullable: is_array($column) ? $column['nullable'] : ! $column->getNotnull()
             );
         })
             ->join(FormattingHelper::newLine(2));
@@ -105,8 +103,8 @@ class ModelGenerator extends AbstractGenerator
     protected function getMethods(): Collection
     {
         return collect($this->reflection->getMethods(ReflectionMethod::IS_PUBLIC))
-            ->reject(fn(ReflectionMethod $method) => $method->isStatic())
-            ->reject(fn(ReflectionMethod $method) => $method->getNumberOfParameters());
+            ->reject(fn (ReflectionMethod $method) => $method->isStatic())
+            ->reject(fn (ReflectionMethod $method) => $method->getNumberOfParameters());
     }
 
     protected function getRelationType(ReflectionMethod $method): string
@@ -159,7 +157,7 @@ class ModelGenerator extends AbstractGenerator
     protected function getManyRelations(): string
     {
         return $this->getRelationMethods()
-            ->filter(fn(ReflectionMethod $method) => $this->isManyRelation($method))
+            ->filter(fn (ReflectionMethod $method) => $this->isManyRelation($method))
             ->map(function (ReflectionMethod $method) {
                 return (string)new TypeScriptProperty(
                     name: Str::snake($method->getName()) . '_count',
@@ -179,8 +177,8 @@ class ModelGenerator extends AbstractGenerator
             });
 
         return $this->getMethods()
-            ->filter(fn(ReflectionMethod $method) => Str::startsWith($method->getName(), 'get'))
-            ->filter(fn(ReflectionMethod $method) => Str::endsWith($method->getName(), 'Attribute'))
+            ->filter(fn (ReflectionMethod $method) => Str::startsWith($method->getName(), 'get'))
+            ->filter(fn (ReflectionMethod $method) => Str::endsWith($method->getName(), 'Attribute'))
             ->mapWithKeys(function (ReflectionMethod $method) {
                 $property = (string)Str::of($method->getName())
                     ->between('get', 'Attribute')
@@ -189,7 +187,7 @@ class ModelGenerator extends AbstractGenerator
                 return [$property => $method];
             })
             ->reject(function (ReflectionMethod $method, string $property) {
-                return $this->columns->contains(fn(DbalColumn|array $column) => (is_array($column) ? $column['name'] : $column->getName()) == $property);
+                return $this->columns->contains(fn (DbalColumn|array $column) => (is_array($column) ? $column['name'] : $column->getName()) == $property);
             })
             ->reject(function (ReflectionMethod $method, string $property) use ($relationsToSkip) {
                 return $relationsToSkip->contains($property);
