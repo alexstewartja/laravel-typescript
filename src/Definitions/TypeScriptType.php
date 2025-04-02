@@ -1,6 +1,6 @@
 <?php
 
-namespace Based\TypeScript\Definitions;
+namespace AlexStewartJa\TypeScript\Definitions;
 
 use ReflectionMethod;
 use ReflectionUnionType;
@@ -27,18 +27,16 @@ class TypeScriptType
         if (is_string($types) && strpos($types, '?') !== false) {
             $types = [
                 str_replace('?', '', $types),
-                self::NULL
+                self::NULL,
             ];
         }
 
         return collect($types)
             ->map(function (string $type) {
                 return match ($type) {
-                    'int' => self::NUMBER,
-                    'float' => self::NUMBER,
+                    'int', 'float' => self::NUMBER,
                     'string' => self::STRING,
                     'array' => self::array(),
-                    'object' => self::ANY,
                     'null' => self::NULL,
                     'bool' => self::BOOLEAN,
                     default => self::ANY,

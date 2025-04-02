@@ -1,6 +1,6 @@
 <?php
 
-namespace Based\TypeScript;
+namespace AlexStewartJa\TypeScript;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -28,7 +28,7 @@ class TypeScriptGenerator
             ->prepend(
                 <<<END
                 /**
-                 * This file is auto generated using 'php artisan typescript:generate'
+                 * This file is auto generated using 'php artisan laravel-typescript:generate'
                  *
                  * Changes to this file will be lost when the command is run again
                  */
@@ -59,11 +59,11 @@ class TypeScriptGenerator
             ->values()
             ->first();
 
-        if (!$generator) {
+        if (! $generator) {
             return null;
         }
 
-        return (new $generator)->generate($reflection);
+        return (new $generator())->generate($reflection);
     }
 
     protected function phpClasses(): Collection
@@ -78,7 +78,7 @@ class TypeScriptGenerator
             })
             ->merge($this->paths)
             ->flatMap(function (string $path, string $namespace) {
-                return collect((new Finder)->in($path)->name('*.php')->files())
+                return collect((new Finder())->in($path)->name('*.php')->files())
                     ->map(function (SplFileInfo $file) use ($path, $namespace) {
                         return $namespace . str_replace(
                             ['/', '.php'],

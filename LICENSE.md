@@ -1,6 +1,6 @@
 The MIT License (MIT)
 
-Copyright (c) Boris Lepikhin <boris@lepikhin.com>
+Copyright (c) Alex Stewart <laravel@alexstewartja.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

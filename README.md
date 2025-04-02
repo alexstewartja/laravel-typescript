@@ -1,16 +1,69 @@
 # Laravel TypeScript
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/based/laravel-typescript.svg?style=flat-square)](https://packagist.org/packages/based/laravel-typescript)
-[![GitHub Tests Action Status](https://img.shields.io/github/workflow/status/lepikhinb/laravel-typescript/run-tests?label=tests)](https://github.com/lepikhinb/laravel-typescript/actions?query=workflow%3Arun-tests+branch%3Amain)
-[![Total Downloads](https://img.shields.io/packagist/dt/based/laravel-typescript.svg?style=flat-square)](https://packagist.org/packages/based/laravel-typescript)
+[![Latest Stable Version](http://poser.pugx.org/alexstewartja/laravel-typescript/v)](https://packagist.org/packages/alexstewartja/laravel-typescript)
+[![Total Downloads](http://poser.pugx.org/alexstewartja/laravel-typescript/downloads)](https://packagist.org/packages/alexstewartja/laravel-typescript)
+[![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/alexstewartja/laravel-typescript/php-cs-fixer.yml?label=code%20style)](https://github.com/alexstewartja/laravel-typescript/actions?query=workflow%3A"Check+%26+fix+styling"+branch%3Amain)
+[![License](http://poser.pugx.org/alexstewartja/laravel-typescript/license)](https://packagist.org/packages/alexstewartja/laravel-typescript)
 
-The package lets you generate TypeScript interfaces from your Laravel models.
+[![PHP Versions Supported](http://poser.pugx.org/alexstewartja/laravel-typescript/require/php)](https://packagist.org/packages/alexstewartja/laravel-typescript)
+[![Laravel Versions Supported](https://img.shields.io/packagist/dependency-v/alexstewartja/laravel-typescript/illuminate/contracts?label=laravel)](https://packagist.org/packages/alexstewartja/laravel-typescript)
 
-## Introduction
-Say you have a model which has several properties (database columns) and multiple relations.
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy_Me-A_Coffee-orange?logo=buy-me-a-coffee)](https://buymeacoffee.com/alexstewartja)
+
+A Laravel package which allows you to quickly generate TypeScript interfaces/definitions for your Eloquent models.
+
+## Features
+
+- :white_check_mark: Database columns
+- :white_check_mark: Model relations
+- :white_check_mark: Model accessors
+- :hourglass_flowing_sand: Model casts
+- :hourglass_flowing_sand: Inherited relations (Traits/Mixins, etc.)
+
+## DBMS Compatibility (Laravel 11+)
+
+- :white_check_mark: pgsql (PostgresSQL)
+- :hourglass_flowing_sand: mysql (MySQL)
+- :hourglass_flowing_sand: mariadb (MariaDB)
+- :hourglass_flowing_sand: sqlsrv (Microsoft SQL Server)
+- :hourglass_flowing_sand: sqlite (SQLite)
+
+## Installation
+
+You can install the package via composer:
+
+```bash
+composer require alexstewartja/laravel-typescript
+```
+
+## Configuration
+
+Publish the config file (`config/laravel-typescript.php`) with:
+```bash
+php artisan vendor:publish --provider="AlexStewartJa\TypeScript\TypeScriptServiceProvider" --tag="typescript-config"
+```
+
+## Usage
+
+Generate TypeScript interfaces for your Eloquent Models:
+```bash
+php artisan laravel-typescript:generate
+```
+
+### Example
+
+#### Eloquent Model
+
+As an example, the following Product model is defined in an eCommerce app:
+
 ```php
 class Product extends Model
 {
+    protected $fillable = [
+        'name',
+        'price',
+    ];
+        
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
@@ -22,6 +75,8 @@ class Product extends Model
     }
 }
 ```
+
+#### TypeScript Interface
 
 Laravel TypeScript will generate the following TypeScript interface:
 
@@ -37,54 +92,13 @@ declare namespace App.Models {
         category?: App.Models.Category | null;
         features?: Array<App.Models.Feature> | null;
     }
-    ...
 }
 ```
 
-**Laravel TypeScript** supports:
-- [x] Database columns
-- [x] Model relations
-- [x] Model accessors
-- [ ] Casted attributes
+#### TS Interface Usage
 
-## Installation
+This is an example usage with Vue 3:
 
-**Laravel 8 and PHP 8 are required.**
-You can install the package via composer:
-
-```bash
-composer require based/laravel-typescript
-```
-
-You can publish the config file with:
-```bash
-php artisan vendor:publish --provider="Based\TypeScript\TypeScriptServiceProvider" --tag="typescript-config"
-```
-
-This is the contents of the published config file:
-
-```php
-return [
-    'generators' => [
-        Model::class => ModelGenerator::class,
-    ],
-
-    'output' => resource_path('js/models.d.ts'),
-
-    // load namespaces from composer's `dev-autoload`
-    'autoloadDev' => false,
-];
-
-```
-
-## Usage
-
-Generate TypeScript interfaces.
-```bash
-php artisan typescript:generate
-```
-
-Example usage with Vue 3:
 ```typescript
 import { defineComponent, PropType } from "vue";
 
@@ -95,7 +109,18 @@ export default defineComponent({
             required: true,
         },
     },
+});
+```
+
+And another Vue 3 example for InertiaJS:
+
+```typescript
+interface CartPageProps {
+    products?: Array<App.Models.Product> | null;
+    coupon_code?: string;
 }
+
+defineProps<CartPageProps>();
 ```
 
 ## Testing
@@ -104,9 +129,27 @@ export default defineComponent({
 composer test
 ```
 
+## Changelog
+
+Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed recently.
+
+## Contributing
+
+A [Lando](https://lando.dev/) file is included in the repo to get up and running quickly:
+
+```bash
+lando start
+```
+Please see [CONTRIBUTING](.github/CONTRIBUTING.md) for more details.
+
+## Security
+
+Please see [SECURITY](.github/SECURITY.md) for more details.
+
 ## Credits
 
-- [Boris Lepikhin](https://github.com/lepikhinb)
+- [Alex Stewart](https://github.com/alexstewartja)
+- [Boris Lepikhin](https://github.com/lepikhinb) - For developing [the foundation](https://github.com/lepikhinb/laravel-typescript) on which this package is "based" :drum:
 - [All Contributors](../../contributors)
 
 ## License

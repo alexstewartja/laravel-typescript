@@ -1,8 +1,8 @@
 <?php
 
-namespace Based\TypeScript\Tests;
+namespace AlexStewartJa\TypeScript\Tests;
 
-use Based\TypeScript\TypeScriptGenerator;
+use AlexStewartJa\TypeScript\TypeScriptGenerator;
 
 class GeneratorTest extends TestCase
 {
@@ -12,7 +12,7 @@ class GeneratorTest extends TestCase
         $output = @tempnam('/tmp', 'models.d.ts');
 
         $generator = new TypeScriptGenerator(
-            generators: config('typescript.generators'),
+            generators: config('laravel-typescript.generators'),
             output: $output,
             autoloadDev: true
         );
@@ -24,7 +24,7 @@ class GeneratorTest extends TestCase
         $result = file_get_contents($output);
 
         $this->assertEquals(3, substr_count($result, 'interface'));
-        $this->assertTrue(str_contains($result, 'sub_category?: Based.TypeScript.Tests.Models.Category | null;'));
+        $this->assertTrue(str_contains($result, 'sub_category?: AlexStewartJa.TypeScript.Tests.Models.Category | null;'));
         $this->assertTrue(str_contains($result, 'products_count?: number | null;'));
 
         unlink($output);
